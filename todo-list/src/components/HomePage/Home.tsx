@@ -1,10 +1,92 @@
-import React from "react";
+import React, { useState } from "react";
 import { IoSettingsOutline } from "react-icons/io5";
-import { FiList } from "react-icons/fi";
+import { FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { SlCalender } from "react-icons/sl";
 import "./css-files/home.css";
 
 const SignUp: React.FC = () => {
+  const [activeView, setActiveView] = useState<
+    "image" | "taskList" | "calendar"
+  >("image");
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+
+  const handleTaskListClick = () => {
+    setActiveView("taskList");
+  };
+
+  const handleCalendarClick = () => {
+    setActiveView("calendar");
+  };
+
+  const navigateMonth = (direction: "prev" | "next") => {
+    const newDate = new Date(currentDate);
+    if (direction === "prev") {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCurrentDate(newDate);
+  };
+
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const today = new Date();
+
+    // Get first day of month
+    const firstDay = new Date(year, month, 1);
+    // Get last day of month
+    const lastDay = new Date(year, month + 1, 0);
+    // Get day of week for first day (0-6, where 0 is Sunday)
+    const startDay = firstDay.getDay();
+    // Total days in month
+    const daysInMonth = lastDay.getDate();
+
+    // Calculate total cells needed (always show 6 weeks)
+    const totalCells = 6 * 7;
+    const days = [];
+
+    // Previous month days
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = 0; i < startDay; i++) {
+      days.push(
+        <div key={`prev-${i}`} className="calendar-day other-month">
+          {prevMonthLastDay - startDay + i + 1}
+        </div>
+      );
+    }
+
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const isToday =
+        i === today.getDate() &&
+        month === today.getMonth() &&
+        year === today.getFullYear();
+
+      days.push(
+        <div
+          key={`current-${i}`}
+          className={`calendar-day ${isToday ? "today" : ""}`}
+        >
+          {i}
+        </div>
+      );
+    }
+
+    // Next month days
+    const daysAdded = startDay + daysInMonth;
+    const remainingCells = totalCells - daysAdded;
+    for (let i = 1; i <= remainingCells; i++) {
+      days.push(
+        <div key={`next-${i}`} className="calendar-day other-month">
+          {i}
+        </div>
+      );
+    }
+
+    return days;
+  };
+
   return (
     <>
       <div className="main-container">
@@ -28,7 +110,7 @@ const SignUp: React.FC = () => {
             <h3>Task</h3>
             <div className="home-task-list">
               <div className="task-list btn-align">
-                <button>
+                <button onClick={handleTaskListClick}>
                   <div>
                     <span className="text-align1">
                       <FiList />
@@ -41,12 +123,12 @@ const SignUp: React.FC = () => {
                 </button>
               </div>
               <div className="calender btn-align">
-                <button>
+                <button onClick={handleCalendarClick}>
                   <div>
                     <span className="text-align1">
                       <SlCalender />
                     </span>{" "}
-                    <span className="text-align2">Calender</span>
+                    <span className="text-align2">Calendar</span>
                   </div>
                   <div>
                     <span>2</span>
@@ -92,11 +174,15 @@ const SignUp: React.FC = () => {
           </div>
         </div>
         <div className="right-container">
-          {/* <div className="right-image">
-          <img src="Image/right-bg.png" alt="" />
-        </div> */}
+          {activeView === "image" && (
+            <div className="right-container1">
+              <div className="right-image">
+                <img src="Image/right-bg.png" alt="" />
+              </div>
+            </div>
+          )}
 
-          <div className="right-container">
+          {activeView === "taskList" && (
             <div className="activity-feed">
               <h2 className="activity-header">Task List</h2>
 
@@ -138,46 +224,41 @@ const SignUp: React.FC = () => {
                   <span className="activity-tag">#Mindfulness</span>
                 </p>
               </div>
-
-              <div className="activity-item">
-                <h3 className="activity-title">Prepare for Interview</h3>
-                <p className="activity-date">6th Apr 2024</p>
-                <p className="activity-description">
-                  Tomorrow I have an important interview scheduled for a job I{" "}
-                </p>
-                <p>
-                  <span className="activity-tag">#Interview</span>{" "}
-                  <span className="activity-tag">#Preparation</span>
-                </p>
-              </div>
-
-              <div className="activity-item">
-                <h3 className="activity-title">Organize Home Office</h3>
-                <p className="activity-date">6th Apr 2024</p>
-                <p className="activity-description">
-                  My home office has become a cluttered mess, making it
-                  difficult{" "}
-                </p>
-                <p>
-                  <span className="activity-tag">#Organization</span>{" "}
-                  <span className="activity-tag">#Productivity</span>
-                </p>
-              </div>
-
-              <div className="activity-item">
-                <h3 className="activity-title">Plan Weekend Gateway</h3>
-                <p className="activity-date">6th Apr 2024</p>
-                <p className="activity-description">
-                  With the hectic work schedule lately, I've been feeling burn{" "}
-                </p>
-                <p>
-                  <span className="activity-tag">#Travel</span>{" "}
-                  <span className="activity-tag">#Relaxation</span>{" "}
-                  <span className="activity-tag">#Gateway</span>
-                </p>
-              </div>
             </div>
-          </div>
+          )}
+
+          {activeView === "calendar" && (
+            <div className="calendar-view">
+              <div className="calendar-header">
+                <button
+                  className="nav-button"
+                  onClick={() => navigateMonth("prev")}
+                >
+                  <FiChevronLeft />
+                </button>
+                <h2>
+                  {currentDate.toLocaleString("default", { month: "long" })}{" "}
+                  {currentDate.getFullYear()}
+                </h2>
+                <button
+                  className="nav-button"
+                  onClick={() => navigateMonth("next")}
+                >
+                  <FiChevronRight />
+                </button>
+              </div>
+              <div className="calendar-weekdays">
+                <div className="weekday">Sun</div>
+                <div className="weekday">Mon</div>
+                <div className="weekday">Tue</div>
+                <div className="weekday">Wed</div>
+                <div className="weekday">Thu</div>
+                <div className="weekday">Fri</div>
+                <div className="weekday">Sat</div>
+              </div>
+              <div className="calendar-grid">{renderCalendar()}</div>
+            </div>
+          )}
         </div>
       </div>
 
