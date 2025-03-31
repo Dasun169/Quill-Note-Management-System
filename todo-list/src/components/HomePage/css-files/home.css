@@ -45,21 +45,18 @@
 }
 
 .home-search-bar input {
-  width: 85%;
+  width: 80%;
   margin-left: 18px;
   height: 30px;
   border-radius: 1cap;
   font-size: 13px;
   border: #ced7e0 solid 1px;
+  padding-left: 10px;
 }
 
 .home-search-bar input:focus {
   outline: none;
   border: #ced7e0 solid 1px;
-}
-
-.home-search-bar input::placeholder {
-  padding-left: 10px;
 }
 
 .home-task {
@@ -82,18 +79,23 @@
 }
 
 .btn-align button {
-  height: 35px;
-  width: 95%;
-  font-size: 15px;
+  height: 30px;
+  width: 100%;
+  font-size: 14px;
   text-align: left;
-  border: none;
-  background-color: white;
+  border: #c5c8cc solid 1px;
+  background-color: #e5d9d9;
   border-radius: 1cap;
   cursor: pointer;
   color: rgb(50, 51, 57);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-left: -5px;
+}
+
+.btn-align button:hover {
+  background-color: rgb(206, 190, 190);
 }
 
 .btn-align button svg {
@@ -402,4 +404,193 @@
 .weekday {
   padding: 5px;
   font-size: 13px;
+}
+
+.settings-container {
+  width: 20%;
+  background-color: #f0f0f0;
+  height: 100%;
+  margin: 10px;
+  border-radius: 20px;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: -15px;
+}
+
+.settings-header h2 {
+  font-size: 24px;
+  color: #333;
+  margin: 0;
+}
+
+.close-settings {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #555;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.settings-content {
+  height: calc(100% - 60px);
+  overflow-y: auto;
+}
+
+.settings-item {
+  margin-bottom: 25px;
+}
+
+.settings-item h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ddd;
+}
+
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-options button {
+  padding: 5px 12px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.settings-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.settings-options input[type="radio"] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* Profile Image Styles */
+.profile-image-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.profile-image-wrapper {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  border: 3px solid #e0e0e0;
+}
+
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-image-placeholder {
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+.profile-image-placeholder span {
+  display: block;
+  margin-top: 5px;
+}
+
+/* User Info Form Styles */
+.user-info-form {
+  margin: 20px 0;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  color: #555;
+  font-size: 13px;
+}
+
+.form-group input {
+  width: 94%;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 1cap;
+  font-size: 14px;
+  margin-bottom: -5px;
+}
+
+.save-changes-btn {
+  background-color: #e5d9d9;
+  color: black;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 1cap;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  width: 100%;
+  border: #c5c8cc solid 1px;
+}
+
+.save-changes-btn:hover {
+  background-color: rgb(206, 190, 190);
+}
+
+.logout-btn1 {
+  background-color: #e5d9d9;
+  color: black;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 1cap;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: -20px;
+  width: 100%;
+  border: #c5c8cc solid 1px;
+}
+
+.logout-btn1:hover {
+  background-color: rgb(206, 190, 190);
+}
+
+.settings-item {
+  margin-bottom: 25px;
+}
+
+.settings-item h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
 }
