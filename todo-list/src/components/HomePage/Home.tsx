@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { IoSettingsOutline, IoAddCircleOutline } from "react-icons/io5";
 import { RxCross2 } from "react-icons/rx";
 import { IoIosContact } from "react-icons/io";
@@ -14,8 +15,8 @@ interface Category {
   color: string;
 }
 
-const SignUp: React.FC = () => {
-  // State management
+const Home: React.FC = () => {
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState<
     "image" | "taskList" | "calendar"
   >("image");
@@ -107,6 +108,11 @@ const SignUp: React.FC = () => {
   const handleTaskListClick = () => setActiveView("taskList");
   const handleCalendarClick = () => setActiveView("calendar");
   const toggleSettings = () => setShowSettings(!showSettings);
+
+  const handleLogout = () => {
+    // Add any logout logic here (clearing tokens, etc.)
+    navigate("/"); // Navigates to the root route which should be your SignIn page
+  };
 
   const navigateMonth = (direction: "prev" | "next") => {
     const newDate = new Date(currentDate);
@@ -261,7 +267,9 @@ const SignUp: React.FC = () => {
                 </button>
               </div>
               <div>
-                <button className="logout-btn1">Logout</button>
+                <button className="logout-btn1" onClick={handleLogout}>
+                  Logout
+                </button>
               </div>
             </div>
             <div className="settings-item">
@@ -510,4 +518,4 @@ const SignUp: React.FC = () => {
   );
 };
 
-export default SignUp;
+export default Home;
