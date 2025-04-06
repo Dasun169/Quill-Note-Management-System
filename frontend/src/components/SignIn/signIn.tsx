@@ -7,7 +7,6 @@ const SignIn: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +17,6 @@ const SignIn: React.FC = () => {
     <div className="signin-container">
       <div className="signin-form1">
         <h2>Welcome Back</h2>
-        {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group1">
             <label htmlFor="email">Email</label>
