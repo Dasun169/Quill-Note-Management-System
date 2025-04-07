@@ -6,6 +6,7 @@ import { IoIosContact } from "react-icons/io";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { SlCalender } from "react-icons/sl";
+import AddTaskModal from "../AddTaskModal/AddTaskModal";
 import "./css-files/home.css";
 
 interface Category {
@@ -20,6 +21,7 @@ const Home: React.FC = () => {
   const [activeView, setActiveView] = useState<
     "image" | "taskList" | "calendar"
   >("image");
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showSettings, setShowSettings] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -55,6 +57,20 @@ const Home: React.FC = () => {
     setIsAddingCategory(true);
     setNewCategoryName("");
     setTimeout(() => categoryInputRef.current?.focus(), 0);
+  };
+
+  const handleAddTask = (task: {
+    title: string;
+    description: string;
+    date: string;
+    tags: string[];
+    category: string;
+  }) => {
+    // Here you would typically save the task to your state or backend
+    console.log("New task:", task);
+
+    // For demo purposes, we'll just show an alert
+    alert(`Task "${task.title}" added successfully!`);
   };
 
   const handleCategoryNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -476,7 +492,10 @@ const Home: React.FC = () => {
               </div>
             </div>
             <div className="floating-button-container">
-              <button className="floating-button">
+              <button
+                className="floating-button"
+                onClick={() => setShowTaskModal(true)}
+              >
                 <span>+</span>
               </button>
             </div>
@@ -514,6 +533,12 @@ const Home: React.FC = () => {
           </div>
         )}
       </div>
+      <AddTaskModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        categories={categories}
+        onSubmit={handleAddTask}
+      />
     </div>
   );
 };
