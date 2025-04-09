@@ -1,15 +1,20 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const router = require("./Routes/UserRoute");
+const UserRouter = require("./Routes/UserRoute");
+const ProfileRouter = require("./Routes/ProfileRoute");
+const NoteRouter = require("./Routes/NoteRoute");
 
 const app = express();
 
 //Middleware
-app.use("/quill", router);
+app.use(express.json());
+app.use("/quill/user", UserRouter);
+app.use("/quill/profile", ProfileRouter);
+app.use("/quill/note", NoteRouter);
 
 mongoose
   .connect(
-    "mongodb+srv://dasunnavindu2001:GXzYJIltXWvVH4pY@cluster0.oxjraov.mongodb.net/"
+    "mongodb+srv://dasunnavindu2001:GXzYJIltXWvVH4pY@cluster0.oxjraov.mongodb.net/quill"
   )
   .then(() => console.log("Connected to MongoDB"))
   .then(() => {
