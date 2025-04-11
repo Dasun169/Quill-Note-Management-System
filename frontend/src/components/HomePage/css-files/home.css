@@ -442,6 +442,7 @@
 
 .settings-item {
   margin-bottom: 25px;
+  width: 85%;
 }
 
 .settings-item h3 {
@@ -556,7 +557,7 @@
   cursor: pointer;
   font-size: 14px;
   margin-top: 10px;
-  width: 100%;
+  width: 110%;
   border: #c5c8cc solid 1px;
 }
 
@@ -573,7 +574,7 @@
   cursor: pointer;
   font-size: 14px;
   margin-top: -20px;
-  width: 100%;
+  width: 110%;
   border: #c5c8cc solid 1px;
 }
 
