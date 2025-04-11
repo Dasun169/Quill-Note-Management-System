@@ -1,16 +1,119 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
 import "./css-files/signIn.css";
-import { useNavigate } from "react-router-dom";
+
+interface LoginForm {
+  email: string;
+  password: string;
+}
+
+interface AuthResponse {
+  success: boolean;
+  message: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [inputValue, setInputValue] = useState<LoginForm>({
+    email: "",
+    password: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/",
+          {},
+          { withCredentials: true }
+        );
+        if (response.data.status) {
+          navigate("/Home");
+        }
+      } catch (error) {
+        console.log("User not authenticated");
+      }
+    };
+    checkAuthStatus();
+  }, [navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setInputValue((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleError = (err: string) => {
+    toast.error(err, {
+      position: "bottom-left",
+    });
+    setIsLoading(false);
+  };
+
+  const handleSuccess = (msg: string) => {
+    toast.success(msg, {
+      position: "bottom-left",
+    });
+    setIsLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/Home");
+    setIsLoading(true);
+
+    // Basic validation
+    if (!inputValue.email || !inputValue.password) {
+      handleError("All fields are required");
+      return;
+    }
+
+    try {
+      const { data } = await axios.post<AuthResponse>(
+        "http://localhost:5000/quill/login",
+        {
+          ...inputValue,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (data.success) {
+        handleSuccess(data.message);
+        setTimeout(() => {
+          navigate("/Home");
+        }, 3000);
+      } else {
+        handleError(data.message || "Login failed");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        handleError(
+          error.response?.data?.message || "An error occurred during login"
+        );
+      } else {
+        handleError("An unexpected error occurred");
+      }
+      console.error("Login error:", error);
+    } finally {
+      setInputValue({
+        email: "",
+        password: "",
+      });
+    }
   };
 
   return (
@@ -23,8 +126,9 @@ const SignIn: React.FC = () => {
             <input
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={inputValue.email}
+              onChange={handleChange}
               required
             />
           </div>
@@ -33,23 +137,21 @@ const SignIn: React.FC = () => {
             <input
               type="password"
               id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={inputValue.password}
+              onChange={handleChange}
               required
             />
           </div>
-          <button
-            type="submit"
-            className="signin-button1"
-            onClick={handleSubmit}
-          >
-            Sign In
+          <button type="submit" className="signin-button1" disabled={isLoading}>
+            {isLoading ? "Signing In..." : "Sign In"}
           </button>
         </form>
         <div className="signup-link1">
-          Don't have an account? <Link to="/signup">Sign up</Link>
+          Don't have an account? <Link to="/SignUp">Sign up</Link>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

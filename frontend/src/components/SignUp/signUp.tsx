@@ -1,36 +1,137 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
 import "./css-files/signUp.css";
 
-const SignUp: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+interface SignUpForm {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+const SignUp: React.FC = () => {
+  const navigate = useNavigate();
+  const [inputValue, setInputValue] = useState<SignUpForm>({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setInputValue({
+      ...inputValue,
+      [name]: value,
+    });
+  };
+
+  const handleError = (err: string) => {
+    toast.error(err, {
+      position: "bottom-left",
+    });
+    setIsLoading(false);
+  };
+
+  const handleSuccess = (msg: string) => {
+    toast.success(msg, {
+      position: "bottom-right",
+    });
+    setIsLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    setIsLoading(true);
+
+    // Validate inputs
+    if (inputValue.password !== inputValue.confirmPassword) {
+      handleError("Passwords do not match");
       return;
     }
-    // Add your signup logic here
-    console.log("Signing up with:", email, password);
+
+    if (!inputValue.name || !inputValue.email || !inputValue.password) {
+      handleError("All fields are required");
+      return;
+    }
+
+    try {
+      const { data } = await axios.post<ApiResponse>(
+        "http://localhost:5000/quill/signup",
+        {
+          name: inputValue.name,
+          email: inputValue.email,
+          password: inputValue.password,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (data.success) {
+        handleSuccess(data.message);
+        setTimeout(() => {
+          navigate("/Home");
+        }, 3000);
+      } else {
+        handleError(data.message || "Registration failed");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        handleError(error.response?.data?.message || "Registration error");
+      } else {
+        handleError("An unexpected error occurred");
+      }
+      console.error("Registration error:", error);
+    } finally {
+      setInputValue({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+    }
   };
 
   return (
     <div className="signup-container">
       <div className="signup-form2">
         <h2>Create Account</h2>
-        {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
+          <div className="form-group2">
+            <label htmlFor="name">Full Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={inputValue.name}
+              onChange={handleOnChange}
+              required
+            />
+          </div>
           <div className="form-group2">
             <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={inputValue.email}
+              onChange={handleOnChange}
               required
             />
           </div>
@@ -39,9 +140,11 @@ const SignUp: React.FC = () => {
             <input
               type="password"
               id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={inputValue.password}
+              onChange={handleOnChange}
               required
+              minLength={6}
             />
           </div>
           <div className="form-group2">
@@ -49,23 +152,22 @@ const SignUp: React.FC = () => {
             <input
               type="password"
               id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              name="confirmPassword"
+              value={inputValue.confirmPassword}
+              onChange={handleOnChange}
               required
+              minLength={6}
             />
           </div>
-          <button
-            type="submit"
-            className="signup-button2"
-            onClick={handleSubmit}
-          >
-            Sign Up
+          <button type="submit" className="signup-button2" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
         <div className="login-link2">
-          Already have an account? <Link to="/">Log in</Link>
+          Already have an account? <Link to="/">Sign In</Link>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };
