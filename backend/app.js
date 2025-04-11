@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const UserRouter = require("./Routes/UserRoute");
 const ProfileRouter = require("./Routes/ProfileRoute");
 const NoteRouter = require("./Routes/NoteRoute");
+const CategoryRouter = require("./Routes/CategoryRoute");
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use("/quill/user", UserRouter);
 app.use("/quill/profile", ProfileRouter);
 app.use("/quill/note", NoteRouter);
+app.use("/quill/category", CategoryRouter);
 
 mongoose
   .connect(
