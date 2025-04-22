@@ -86,7 +86,7 @@ const SignUp: React.FC = () => {
       if (data.success) {
         handleSuccess(data.message);
         setTimeout(() => {
-          navigate("/Home");
+          navigate("/Home", { state: { email: inputValue.email } });
         }, 3000);
       } else {
         handleError(data.message || "Registration failed");
