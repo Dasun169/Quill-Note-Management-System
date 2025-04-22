@@ -36,7 +36,9 @@ const SignIn: React.FC = () => {
           { withCredentials: true }
         );
         if (response.data.status) {
-          navigate("/Home");
+          navigate("/Home", {
+            state: { email: response.data.user?.email || "" },
+          });
         }
       } catch (error) {
         console.log("User not authenticated");
@@ -62,7 +64,7 @@ const SignIn: React.FC = () => {
 
   const handleSuccess = (msg: string) => {
     toast.success(msg, {
-      position: "bottom-left",
+      position: "bottom-right",
     });
     setIsLoading(false);
   };
@@ -94,7 +96,7 @@ const SignIn: React.FC = () => {
       if (data.success) {
         handleSuccess(data.message);
         setTimeout(() => {
-          navigate("/Home");
+          navigate("/Home", { state: { email: inputValue.email } });
         }, 3000);
       } else {
         handleError(data.message || "Login failed");
