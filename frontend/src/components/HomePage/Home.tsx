@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { IoSettingsOutline, IoAddCircleOutline } from "react-icons/io5";
 import { RxCross2 } from "react-icons/rx";
 import { IoIosContact } from "react-icons/io";
@@ -17,6 +17,13 @@ interface Category {
 }
 
 const Home: React.FC = () => {
+  const location = useLocation();
+  const { email } = location.state || {};
+
+  useEffect(() => {
+    console.log("Email received from SignIn page:", email);
+  }, [email]);
+
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState<
     "image" | "taskList" | "calendar"
