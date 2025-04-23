@@ -6,6 +6,7 @@ import { IoIosContact } from "react-icons/io";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { SlCalender } from "react-icons/sl";
+import axios from "axios";
 import AddTaskModal from "../AddTaskModal/AddTaskModal";
 import "./css-files/home.css";
 
@@ -19,12 +20,41 @@ interface Category {
 const Home: React.FC = () => {
   const location = useLocation();
   const { email } = location.state || {};
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("Email received from SignIn page:", email);
   }, [email]);
 
-  const navigate = useNavigate();
+  // Initialize with sample data
+  useEffect(() => {
+    setCategories([
+      { id: "1", name: "Work", count: 3, color: "#FF6B6B" },
+      { id: "2", name: "Personal", count: 2, color: "#4ECDC4" },
+      { id: "3", name: "Shopping", count: 1, color: "#FFE66D" },
+    ]);
+  }, []);
+
+  // Verify authentication on component mount
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/quill/verify", // Changed from just "/"
+          {},
+          { withCredentials: true }
+        );
+        if (!response.data.status) {
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Auth verification failed:", error);
+        navigate("/");
+      }
+    };
+    verifyAuth();
+  }, [navigate]);
+
   const [activeView, setActiveView] = useState<
     "image" | "taskList" | "calendar"
   >("image");
@@ -49,15 +79,6 @@ const Home: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize with sample data
-  useEffect(() => {
-    setCategories([
-      { id: "1", name: "Work", count: 3, color: "#FF6B6B" },
-      { id: "2", name: "Personal", count: 2, color: "#4ECDC4" },
-      { id: "3", name: "Shopping", count: 1, color: "#FFE66D" },
-    ]);
-  }, []);
 
   // Category functions
   const handleAddCategoryClick = () => {
@@ -127,14 +148,21 @@ const Home: React.FC = () => {
     }
   };
 
-  // Other existing functions remain the same...
   const handleTaskListClick = () => setActiveView("taskList");
   const handleCalendarClick = () => setActiveView("calendar");
   const toggleSettings = () => setShowSettings(!showSettings);
 
-  const handleLogout = () => {
-    // Add any logout logic here (clearing tokens, etc.)
-    navigate("/"); // Navigates to the root route which should be your SignIn page
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        "http://localhost:5000/quill/logout",
+        {},
+        { withCredentials: true }
+      );
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const navigateMonth = (direction: "prev" | "next") => {
