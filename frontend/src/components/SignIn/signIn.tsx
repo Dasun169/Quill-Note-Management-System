@@ -30,18 +30,21 @@ const SignIn: React.FC = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
+        console.log("Checking auth status...");
         const response = await axios.post(
           "http://localhost:5000/",
           {},
           { withCredentials: true }
         );
+        console.log("Auth check response:", response.data);
         if (response.data.status) {
+          console.log("User authenticated, navigating to Home");
           navigate("/Home", {
             state: { email: response.data.user?.email || "" },
           });
         }
       } catch (error) {
-        console.log("User not authenticated");
+        console.log("User not authenticated", error);
       }
     };
     checkAuthStatus();
@@ -95,9 +98,7 @@ const SignIn: React.FC = () => {
 
       if (data.success) {
         handleSuccess(data.message);
-        setTimeout(() => {
-          navigate("/Home", { state: { email: inputValue.email } });
-        }, 3000);
+        navigate("/Home", { state: { email: inputValue.email } });
       } else {
         handleError(data.message || "Login failed");
       }
