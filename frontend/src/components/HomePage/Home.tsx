@@ -17,10 +17,68 @@ interface Category {
   color: string;
 }
 
+interface Note {
+  _id: string;
+  email: string;
+  title: string;
+  date: string;
+  description: string;
+  categoryType: string;
+  keyWords: string[];
+}
+
 const Home: React.FC = () => {
   const location = useLocation();
   const { email } = location.state || {};
   const navigate = useNavigate();
+
+  // Add this useEffect to fetch notes when component mounts
+  useEffect(() => {
+    const fetchInitialNotes = async () => {
+      if (email) {
+        // Only fetch if email is available
+        await fetchNotes();
+      }
+    };
+    fetchInitialNotes();
+  }, [email]); // Add email as dependency
+
+  // Update the fetchNotes function to handle empty email case
+  const fetchNotes = async () => {
+    if (!email) {
+      console.log("Email not available yet, skipping notes fetch");
+      return;
+    }
+
+    setIsLoading(true);
+    console.log("Fetching notes...");
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/quill/note/notes/${email}`,
+        {
+          withCredentials: true,
+        }
+      );
+      console.log("API Response:", response);
+
+      if (!Array.isArray(response.data)) {
+        console.error("Unexpected response format:", response.data);
+        return;
+      }
+
+      const formattedNotes = response.data.map((note) => ({
+        ...note,
+        date: new Date(note.date).toISOString(),
+      }));
+
+      setNotes(formattedNotes);
+      console.log("Notes state updated");
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     console.log("Email received from SignIn page:", email);
@@ -40,7 +98,7 @@ const Home: React.FC = () => {
     const verifyAuth = async () => {
       try {
         const response = await axios.post(
-          "http://localhost:5000/quill/verify", // Changed from just "/"
+          "http://localhost:5000/quill/verify",
           {},
           { withCredentials: true }
         );
@@ -74,11 +132,19 @@ const Home: React.FC = () => {
     null
   );
   const [editCategoryName, setEditCategoryName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+
+  const [notes, setNotes] = useState<Note[]>([]);
+
+  const handleTaskListClick = async () => {
+    setActiveView("taskList");
+    await fetchNotes();
+  };
 
   // Category functions
   const handleAddCategoryClick = () => {
@@ -148,7 +214,6 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleTaskListClick = () => setActiveView("taskList");
   const handleCalendarClick = () => setActiveView("calendar");
   const toggleSettings = () => setShowSettings(!showSettings);
 
@@ -189,7 +254,6 @@ const Home: React.FC = () => {
 
   const handleSaveChanges = () => alert("Changes saved successfully!");
 
-  // Calendar rendering function remains the same...
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -371,7 +435,7 @@ const Home: React.FC = () => {
                     <span className="text-align2">Note List</span>
                   </div>
                   <div>
-                    <span>2</span>
+                    <span>{notes.length}</span>
                   </div>
                 </button>
               </div>
@@ -489,42 +553,45 @@ const Home: React.FC = () => {
           <>
             <div className="activity-feed">
               <h2 className="activity-header">Note List</h2>
-              <div className="activity-item">
-                <h3 className="activity-title">
-                  Attend Yoga Classes Next Week
-                </h3>
-                <p className="activity-date">6th Apr 2024</p>
-                <p className="activity-description">
-                  As a way to prioritize my physical and mental well-being, I
+              {isLoading ? (
+                <div>Loading notes...</div>
+              ) : notes.length === 0 ? (
+                <p className="no-notes-message">
+                  No notes found. Create your first note!
                 </p>
-                <p>
-                  <span className="activity-tag">#Yoga</span>
-                  <span className="activity-tag">#Fitness</span>
-                </p>
-              </div>
-              <div className="activity-item">
-                <h3 className="activity-title">Start Learning Guitar</h3>
-                <p className="activity-date">6th Apr 2024</p>
-                <p className="activity-description">
-                  Learning to play the guitar has been a dream of mine for you
-                </p>
-                <p>
-                  <span className="activity-tag">#Guitar</span>
-                </p>
-              </div>
-              <div className="activity-item">
-                <h3 className="activity-title">
-                  Practice Mindfulness Meditation
-                </h3>
-                <p className="activity-date">6th Apr 2024</p>
-                <p className="activity-description">
-                  In today's fast-paced world, it's easy to feel overwhelmed
-                </p>
-                <p>
-                  <span className="activity-tag">#Meditation</span>
-                  <span className="activity-tag">#Mindfulness</span>
-                </p>
-              </div>
+              ) : (
+                notes.map((note) => (
+                  <div key={note._id} className="activity-item">
+                    <h3 className="activity-title">{note.title}</h3>
+                    <p className="activity-date">
+                      {new Date(note.date).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p className="activity-description">
+                      {note.description.length > 100
+                        ? `${note.description.substring(0, 100)}...`
+                        : note.description}
+                    </p>
+                    {note.keyWords && note.keyWords.length > 0 && (
+                      <div className="activity-tags">
+                        {note.keyWords.map((tag) => (
+                          <span key={tag} className="activity-tag">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {note.categoryType && (
+                      <div className="activity-category">
+                        Category: {note.categoryType}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
             <div className="floating-button-container">
               <button

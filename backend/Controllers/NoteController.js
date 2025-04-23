@@ -59,3 +59,30 @@ exports.deleteNoteByTitleAndEmail = async (req, res) => {
     res.status(500).json({ message: "Error deleting note", error });
   }
 };
+
+// Get all notes
+exports.getAllNotes = async (req, res) => {
+  try {
+    const notes = await Note.find();
+    res.status(200).json(notes);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching notes", error });
+  }
+};
+
+// Get all notes by email
+exports.getNotesByEmail = async (req, res) => {
+  const { email } = req.params;
+
+  try {
+    const notes = await Note.find({ email });
+
+    if (notes.length === 0) {
+      return res.status(404).json({ message: "No notes found for this email" });
+    }
+
+    res.status(200).json(notes);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching notes", error });
+  }
+};
