@@ -4,6 +4,10 @@ const CategoryController = require("../Controllers/CategoryController");
 
 router.post("/create", CategoryController.createCategory);
 router.get("/all/:email", CategoryController.getCategoriesByEmail);
+router.get(
+  "/note-count/:email/:categoryType",
+  CategoryController.getNoteCountByCategory
+);
 router.put("/update/:email/:categoryType", CategoryController.updateCategory);
 router.delete(
   "/delete/:email/:categoryType",

@@ -1,4 +1,5 @@
 const Category = require("../Model/CategoryModel");
+const Note = require("../Model/NoteModel");
 
 // Create a new category
 exports.createCategory = async (req, res) => {
@@ -64,5 +65,17 @@ exports.deleteCategoryByEmailAndType = async (req, res) => {
     res.status(200).json({ message: "Category deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting category", error });
+  }
+};
+
+// Get note count by email and categoryType
+exports.getNoteCountByCategory = async (req, res) => {
+  const { email, categoryType } = req.params;
+
+  try {
+    const count = await Note.countDocuments({ email, categoryType });
+    res.status(200).json({ email, categoryType, count });
+  } catch (error) {
+    res.status(500).json({ message: "Error counting notes", error });
   }
 };

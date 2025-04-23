@@ -17,6 +17,13 @@ interface Category {
   color: string;
 }
 
+interface BackendCategory {
+  _id: string;
+  email: string;
+  name: string;
+  color: string;
+}
+
 interface Note {
   _id: string;
   email: string;
@@ -32,87 +39,7 @@ const Home: React.FC = () => {
   const { email } = location.state || {};
   const navigate = useNavigate();
 
-  // Add this useEffect to fetch notes when component mounts
-  useEffect(() => {
-    const fetchInitialNotes = async () => {
-      if (email) {
-        // Only fetch if email is available
-        await fetchNotes();
-      }
-    };
-    fetchInitialNotes();
-  }, [email]); // Add email as dependency
-
-  // Update the fetchNotes function to handle empty email case
-  const fetchNotes = async () => {
-    if (!email) {
-      console.log("Email not available yet, skipping notes fetch");
-      return;
-    }
-
-    setIsLoading(true);
-    console.log("Fetching notes...");
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/quill/note/notes/${email}`,
-        {
-          withCredentials: true,
-        }
-      );
-      console.log("API Response:", response);
-
-      if (!Array.isArray(response.data)) {
-        console.error("Unexpected response format:", response.data);
-        return;
-      }
-
-      const formattedNotes = response.data.map((note) => ({
-        ...note,
-        date: new Date(note.date).toISOString(),
-      }));
-
-      setNotes(formattedNotes);
-      console.log("Notes state updated");
-    } catch (error) {
-      console.error("Error fetching notes:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    console.log("Email received from SignIn page:", email);
-  }, [email]);
-
-  // Initialize with sample data
-  useEffect(() => {
-    setCategories([
-      { id: "1", name: "Work", count: 3, color: "#FF6B6B" },
-      { id: "2", name: "Personal", count: 2, color: "#4ECDC4" },
-      { id: "3", name: "Shopping", count: 1, color: "#FFE66D" },
-    ]);
-  }, []);
-
-  // Verify authentication on component mount
-  useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const response = await axios.post(
-          "http://localhost:5000/quill/verify",
-          {},
-          { withCredentials: true }
-        );
-        if (!response.data.status) {
-          navigate("/");
-        }
-      } catch (error) {
-        console.error("Auth verification failed:", error);
-        navigate("/");
-      }
-    };
-    verifyAuth();
-  }, [navigate]);
-
+  // State
   const [activeView, setActiveView] = useState<
     "image" | "taskList" | "calendar"
   >("image");
@@ -133,20 +60,204 @@ const Home: React.FC = () => {
   );
   const [editCategoryName, setEditCategoryName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  const [notes, setNotes] = useState<Note[]>([]);
+  // Fetch initial data
+  useEffect(() => {
+    console.log("Email received from SignIn page:", email);
+    if (email) {
+      fetchNotes();
+      fetchCategories();
+    }
+  }, [email]);
 
+  // Verify authentication
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/quill/verify",
+          {},
+          { withCredentials: true }
+        );
+        if (!response.data.status) {
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Auth verification failed:", error);
+        navigate("/");
+      }
+    };
+    verifyAuth();
+  }, [navigate]);
+
+  // Fetch notes
+  const fetchNotes = async () => {
+    if (!email) return;
+
+    setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/quill/note/notes/${email}`,
+        { withCredentials: true }
+      );
+
+      if (Array.isArray(response.data)) {
+        const formattedNotes = response.data.map((note) => ({
+          ...note,
+          date: new Date(note.date).toISOString(),
+        }));
+        setNotes(formattedNotes);
+        fetchCategoryCounts(); // Update counts after fetching notes
+      }
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch categories
+  const fetchCategories = async () => {
+    if (!email) return;
+
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/quill/category/all/${email}`,
+        { withCredentials: true }
+      );
+
+      if (Array.isArray(response.data)) {
+        const transformedCategories = response.data.map(
+          (cat: BackendCategory) => ({
+            id: cat._id,
+            name: cat.name,
+            count: 0, // Will be updated by fetchCategoryCounts
+            color: cat.color || `hsl(${Math.random() * 360}, 70%, 60%)`,
+          })
+        );
+        setCategories(transformedCategories);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  // Fetch note counts per category
+  const fetchCategoryCounts = async () => {
+    if (!email) return;
+
+    try {
+      // First get all unique category types from notes
+      const categoryTypes = [
+        ...new Set(notes.map((note) => note.categoryType)),
+      ];
+
+      // Fetch counts for each category
+      const counts = await Promise.all(
+        categoryTypes.map(async (type) => {
+          const response = await axios.get(
+            `http://localhost:5000/quill/category/note-count/${email}/${type}`,
+            { withCredentials: true }
+          );
+          return { type, count: response.data.count || 0 };
+        })
+      );
+
+      // Update categories with counts
+      setCategories((prevCategories) =>
+        prevCategories.map((cat) => {
+          const countObj = counts.find((c) => c.type === cat.name);
+          return {
+            ...cat,
+            count: countObj ? countObj.count : 0,
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Error fetching category counts:", error);
+    }
+  };
+
+  // Add new category
+  const handleAddCategory = async (categoryData: {
+    name: string;
+    color: string;
+  }) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/quill/category/create",
+        {
+          email,
+          name: categoryData.name,
+          color: categoryData.color,
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        setCategories((prev) => [
+          ...prev,
+          {
+            id: response.data._id,
+            name: response.data.name,
+            count: 0,
+            color: response.data.color,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error adding category:", error);
+    }
+  };
+
+  // Update category
+  const updateCategory = async (id: string, newName: string) => {
+    try {
+      const categoryToUpdate = categories.find((cat) => cat.id === id);
+      if (!categoryToUpdate) return;
+
+      await axios.put(
+        `http://localhost:5000/quill/category/update/${email}/${categoryToUpdate.name}`,
+        { name: newName },
+        { withCredentials: true }
+      );
+
+      return true;
+    } catch (error) {
+      console.error("Error updating category:", error);
+      return false;
+    }
+  };
+
+  // Delete category
+  const deleteCategory = async (id: string) => {
+    try {
+      const categoryToDelete = categories.find((cat) => cat.id === id);
+      if (!categoryToDelete) return;
+
+      await axios.delete(
+        `http://localhost:5000/quill/category/delete/${email}/${categoryToDelete.name}`,
+        { withCredentials: true }
+      );
+      return true;
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      return false;
+    }
+  };
+
+  // Event handlers
   const handleTaskListClick = async () => {
     setActiveView("taskList");
     await fetchNotes();
   };
 
-  // Category functions
   const handleAddCategoryClick = () => {
     setIsAddingCategory(true);
     setNewCategoryName("");
@@ -160,10 +271,7 @@ const Home: React.FC = () => {
     tags: string[];
     category: string;
   }) => {
-    // Here you would typically save the task to your state or backend
     console.log("New task:", task);
-
-    // For demo purposes, we'll just show an alert
     alert(`Task "${task.title}" added successfully!`);
   };
 
@@ -171,24 +279,24 @@ const Home: React.FC = () => {
     setNewCategoryName(e.target.value);
   };
 
-  const handleCategorySubmit = (e: React.FormEvent) => {
+  const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newCategoryName.trim()) {
-      const newCategory: Category = {
-        id: Date.now().toString(),
+      await handleAddCategory({
         name: newCategoryName,
-        count: 0,
         color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-      };
-      setCategories([...categories, newCategory]);
+      });
       setIsAddingCategory(false);
       setNewCategoryName("");
     }
   };
 
-  const handleDeleteCategory = (id: string, e: React.MouseEvent) => {
+  const handleDeleteCategory = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setCategories(categories.filter((category) => category.id !== id));
+    const success = await deleteCategory(id);
+    if (success) {
+      setCategories(categories.filter((category) => category.id !== id));
+    }
   };
 
   const startEditingCategory = (category: Category, e: React.MouseEvent) => {
@@ -202,15 +310,18 @@ const Home: React.FC = () => {
     setEditCategoryName(e.target.value);
   };
 
-  const handleEditSubmit = (id: string, e: React.FormEvent) => {
+  const handleEditSubmit = async (id: string, e: React.FormEvent) => {
     e.preventDefault();
     if (editCategoryName.trim()) {
-      setCategories(
-        categories.map((cat) =>
-          cat.id === id ? { ...cat, name: editCategoryName } : cat
-        )
-      );
-      setEditingCategoryId(null);
+      const success = await updateCategory(id, editCategoryName);
+      if (success) {
+        setCategories(
+          categories.map((cat) =>
+            cat.id === id ? { ...cat, name: editCategoryName } : cat
+          )
+        );
+        setEditingCategoryId(null);
+      }
     }
   };
 
