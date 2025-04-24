@@ -11,17 +11,9 @@ import AddTaskModal from "../AddTaskModal/AddTaskModal";
 import "./css-files/home.css";
 
 interface Category {
-  id: string;
-  name: string;
-  count: number;
-  color: string;
-}
-
-interface BackendCategory {
   _id: string;
   email: string;
-  name: string;
-  color: string;
+  categoryType: string;
 }
 
 interface Note {
@@ -53,23 +45,20 @@ const Home: React.FC = () => {
     password: "",
   });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>(
+    {}
+  );
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
-    null
-  );
-  const [editCategoryName, setEditCategoryName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch initial data
   useEffect(() => {
-    console.log("Email received from SignIn page:", email);
     if (email) {
       fetchNotes();
       fetchCategories();
@@ -113,7 +102,6 @@ const Home: React.FC = () => {
           date: new Date(note.date).toISOString(),
         }));
         setNotes(formattedNotes);
-        fetchCategoryCounts(); // Update counts after fetching notes
       }
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -133,15 +121,8 @@ const Home: React.FC = () => {
       );
 
       if (Array.isArray(response.data)) {
-        const transformedCategories = response.data.map(
-          (cat: BackendCategory) => ({
-            id: cat._id,
-            name: cat.name,
-            count: 0, // Will be updated by fetchCategoryCounts
-            color: cat.color || `hsl(${Math.random() * 360}, 70%, 60%)`,
-          })
-        );
-        setCategories(transformedCategories);
+        setCategories(response.data);
+        fetchCategoryCounts(response.data);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -149,180 +130,114 @@ const Home: React.FC = () => {
   };
 
   // Fetch note counts per category
-  const fetchCategoryCounts = async () => {
+  const fetchCategoryCounts = async (categories: Category[]) => {
     if (!email) return;
 
     try {
-      // First get all unique category types from notes
-      const categoryTypes = [
-        ...new Set(notes.map((note) => note.categoryType)),
-      ];
-
-      // Fetch counts for each category
       const counts = await Promise.all(
-        categoryTypes.map(async (type) => {
+        categories.map(async (category) => {
           const response = await axios.get(
-            `http://localhost:5000/quill/category/note-count/${email}/${type}`,
+            `http://localhost:5000/quill/category/note-count/${email}/${category.categoryType}`,
             { withCredentials: true }
           );
-          return { type, count: response.data.count || 0 };
-        })
-      );
-
-      // Update categories with counts
-      setCategories((prevCategories) =>
-        prevCategories.map((cat) => {
-          const countObj = counts.find((c) => c.type === cat.name);
           return {
-            ...cat,
-            count: countObj ? countObj.count : 0,
+            type: category.categoryType,
+            count: response.data.count || 0,
           };
         })
       );
+
+      const countsObj = counts.reduce((acc, curr) => {
+        acc[curr.type] = curr.count;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setCategoryCounts(countsObj);
     } catch (error) {
       console.error("Error fetching category counts:", error);
     }
   };
 
   // Add new category
-  const handleAddCategory = async (categoryData: {
-    name: string;
-    color: string;
-  }) => {
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
     try {
       const response = await axios.post(
         "http://localhost:5000/quill/category/create",
         {
           email,
-          name: categoryData.name,
-          color: categoryData.color,
+          categoryType: newCategoryName,
         },
         { withCredentials: true }
       );
 
       if (response.data) {
-        setCategories((prev) => [
-          ...prev,
-          {
-            id: response.data._id,
-            name: response.data.name,
-            count: 0,
-            color: response.data.color,
-          },
-        ]);
+        setCategories([...categories, response.data]);
+        setNewCategoryName("");
+        setIsAddingCategory(false);
+        fetchCategoryCounts([...categories, response.data]);
       }
     } catch (error) {
       console.error("Error adding category:", error);
     }
   };
 
-  // Update category
-  const updateCategory = async (id: string, newName: string) => {
-    try {
-      const categoryToUpdate = categories.find((cat) => cat.id === id);
-      if (!categoryToUpdate) return;
-
-      await axios.put(
-        `http://localhost:5000/quill/category/update/${email}/${categoryToUpdate.name}`,
-        { name: newName },
-        { withCredentials: true }
-      );
-
-      return true;
-    } catch (error) {
-      console.error("Error updating category:", error);
-      return false;
-    }
-  };
-
   // Delete category
-  const deleteCategory = async (id: string) => {
+  const handleDeleteCategory = async (categoryType: string) => {
     try {
-      const categoryToDelete = categories.find((cat) => cat.id === id);
-      if (!categoryToDelete) return;
-
       await axios.delete(
-        `http://localhost:5000/quill/category/delete/${email}/${categoryToDelete.name}`,
+        `http://localhost:5000/quill/category/delete/${email}/${categoryType}`,
         { withCredentials: true }
       );
-      return true;
+
+      const updatedCategories = categories.filter(
+        (cat) => cat.categoryType !== categoryType
+      );
+      setCategories(updatedCategories);
+
+      const updatedCounts = { ...categoryCounts };
+      delete updatedCounts[categoryType];
+      setCategoryCounts(updatedCounts);
     } catch (error) {
       console.error("Error deleting category:", error);
-      return false;
     }
   };
 
-  // Event handlers
+  // Handle form submission
+  const handleCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleAddCategory();
+  };
+
+  // Generate consistent color based on category name
+  const getCategoryColor = (categoryType: string) => {
+    const colors = [
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#FFA07A",
+      "#98D8C8",
+      "#F06292",
+      "#7986CB",
+      "#9575CD",
+    ];
+    const index = Math.abs(hashCode(categoryType)) % colors.length;
+    return colors[index];
+  };
+
+  // Simple hash function for consistent color assignment
+  const hashCode = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return hash;
+  };
+
   const handleTaskListClick = async () => {
     setActiveView("taskList");
     await fetchNotes();
-  };
-
-  const handleAddCategoryClick = () => {
-    setIsAddingCategory(true);
-    setNewCategoryName("");
-    setTimeout(() => categoryInputRef.current?.focus(), 0);
-  };
-
-  const handleAddTask = (task: {
-    title: string;
-    description: string;
-    date: string;
-    tags: string[];
-    category: string;
-  }) => {
-    console.log("New task:", task);
-    alert(`Task "${task.title}" added successfully!`);
-  };
-
-  const handleCategoryNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewCategoryName(e.target.value);
-  };
-
-  const handleCategorySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newCategoryName.trim()) {
-      await handleAddCategory({
-        name: newCategoryName,
-        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-      });
-      setIsAddingCategory(false);
-      setNewCategoryName("");
-    }
-  };
-
-  const handleDeleteCategory = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const success = await deleteCategory(id);
-    if (success) {
-      setCategories(categories.filter((category) => category.id !== id));
-    }
-  };
-
-  const startEditingCategory = (category: Category, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingCategoryId(category.id);
-    setEditCategoryName(category.name);
-    setTimeout(() => editInputRef.current?.focus(), 0);
-  };
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditCategoryName(e.target.value);
-  };
-
-  const handleEditSubmit = async (id: string, e: React.FormEvent) => {
-    e.preventDefault();
-    if (editCategoryName.trim()) {
-      const success = await updateCategory(id, editCategoryName);
-      if (success) {
-        setCategories(
-          categories.map((cat) =>
-            cat.id === id ? { ...cat, name: editCategoryName } : cat
-          )
-        );
-        setEditingCategoryId(null);
-      }
-    }
   };
 
   const handleCalendarClick = () => setActiveView("calendar");
@@ -409,6 +324,17 @@ const Home: React.FC = () => {
     }
 
     return days;
+  };
+
+  const handleAddTask = (task: {
+    title: string;
+    description: string;
+    date: string;
+    tags: string[];
+    category: string;
+  }) => {
+    console.log("New task:", task);
+    alert(`Task "${task.title}" added successfully!`);
   };
 
   return (
@@ -571,74 +497,71 @@ const Home: React.FC = () => {
               <div className="category-header">
                 <h3>Category</h3>
               </div>
-              <div className="add-category" onClick={handleAddCategoryClick}>
+              <div
+                className="add-category"
+                onClick={() => setIsAddingCategory(true)}
+              >
                 <IoAddCircleOutline />
               </div>
             </div>
             <div className="list-category">
               {categories.map((category) => (
-                <div key={category.id} className="list-category1 btn-align">
-                  {editingCategoryId === category.id ? (
-                    <form onSubmit={(e) => handleEditSubmit(category.id, e)}>
-                      <div className="category-box">
-                        <div
-                          className="category-box-inside"
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <div className="category-input1">
-                          <input
-                            type="text"
-                            ref={editInputRef}
-                            value={editCategoryName}
-                            onChange={handleEditChange}
-                            className="category-input"
-                            onBlur={() => setEditingCategoryId(null)}
-                          />
+                <div key={category._id} className="list-category-item">
+                  <div className="category-display">
+                    <div className="category-box">
+                      <div
+                        className="category-box-inside"
+                        style={{
+                          backgroundColor: getCategoryColor(
+                            category.categoryType
+                          ),
+                        }}
+                      ></div>
+                      <div className="category-content">
+                        <div className="category-type">
+                          {category.categoryType}
                         </div>
                       </div>
-                    </form>
-                  ) : (
-                    <button onClick={(e) => startEditingCategory(category, e)}>
-                      <div className="category-box">
-                        <div
-                          className="category-box-inside"
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <div>
-                          <span className="text-align1">{category.name}</span>
-                        </div>
+                    </div>
+                    <div className="category-actions">
+                      <div className="category-count">
+                        {categoryCounts[category.categoryType] || 0}
                       </div>
-                      <div className="delete-category">
-                        <div>
-                          <span>{category.count}</span>
-                        </div>
-                        <div
-                          className="delete-category-icon"
-                          onClick={(e) => handleDeleteCategory(category.id, e)}
-                        >
-                          <RiDeleteBin6Line />
-                        </div>
+                      <div
+                        className="delete-category-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(category.categoryType);
+                        }}
+                      >
+                        <RiDeleteBin6Line />
                       </div>
-                    </button>
-                  )}
+                    </div>
+                  </div>
                 </div>
               ))}
               {isAddingCategory && (
-                <div className="list-category1 btn-align">
+                <div className="list-category-item">
                   <form onSubmit={handleCategorySubmit}>
                     <div className="category-box">
-                      <div className="category-box-inside"></div>
-                      <div>
-                        <input
-                          type="text"
-                          ref={categoryInputRef}
-                          value={newCategoryName}
-                          onChange={handleCategoryNameChange}
-                          placeholder="Category name"
-                          className="category-input"
-                          onBlur={() => setIsAddingCategory(false)}
-                        />
-                      </div>
+                      <div
+                        className="category-box-inside"
+                        style={{ backgroundColor: "#ccc" }}
+                      ></div>
+                      <input
+                        type="text"
+                        ref={categoryInputRef}
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Type category name and press Enter"
+                        className="category-input"
+                        onBlur={() => {
+                          if (!newCategoryName.trim()) {
+                            setIsAddingCategory(false);
+                          }
+                        }}
+                        autoFocus
+                      />
                     </div>
                   </form>
                 </div>
@@ -749,7 +672,11 @@ const Home: React.FC = () => {
       <AddTaskModal
         isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
-        categories={categories}
+        categories={categories.map((cat) => ({
+          id: cat._id,
+          name: cat.categoryType,
+          color: getCategoryColor(cat.categoryType),
+        }))}
         onSubmit={handleAddTask}
       />
     </div>
