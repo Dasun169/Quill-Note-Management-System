@@ -944,3 +944,33 @@
 .add-category:hover {
   transform: scale(1.1);
 }
+
+.activity-category {
+  color: #333;
+}
+
+.activity-date {
+  margin-top: -5px;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 1.2rem;
+}
+
+.edit-btn {
+  color: #007bff;
+}
+
+.delete-btn {
+  color: #dc3545;
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Note = require("../Model/NoteModel");
 
 // Create a note
@@ -84,5 +85,65 @@ exports.getNotesByEmail = async (req, res) => {
     res.status(200).json(notes);
   } catch (error) {
     res.status(500).json({ message: "Error fetching notes", error });
+  }
+};
+
+// Delete note using _id
+exports.deleteNoteById = async (req, res) => {
+  const { id } = req.params;
+
+  // Validate the ID format first
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid note ID format" });
+  }
+
+  try {
+    const deletedNote = await Note.findByIdAndDelete(id);
+
+    if (!deletedNote) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    res.status(200).json({
+      message: "Note deleted successfully",
+      deletedNote,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting note",
+      error: error.message,
+    });
+  }
+};
+
+// UPDATE BY ID
+exports.updateNoteById = async (req, res) => {
+  const { id } = req.params;
+  const updatedFields = req.body;
+
+  // Validate ID format
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid note ID format" });
+  }
+
+  try {
+    const updatedNote = await Note.findByIdAndUpdate(id, updatedFields, {
+      new: true, // Return the updated document
+      runValidators: true, // Run schema validators on update
+    });
+
+    if (!updatedNote) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    res.status(200).json({
+      message: "Note updated successfully",
+      updatedNote,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating note",
+      error: error.message,
+    });
   }
 };
