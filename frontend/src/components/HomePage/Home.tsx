@@ -27,6 +27,12 @@ interface Note {
   keyWords: string[];
 }
 
+interface UserData {
+  name: string;
+  email: string;
+  password: string;
+}
+
 const Home: React.FC = () => {
   const location = useLocation();
   const { email } = location.state || {};
@@ -40,8 +46,8 @@ const Home: React.FC = () => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showSettings, setShowSettings] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [userData, setUserData] = useState({
-    fullName: "",
+  const [userData, setUserData] = useState<UserData>({
+    name: "",
     email: "",
     password: "",
   });
@@ -243,7 +249,33 @@ const Home: React.FC = () => {
   };
 
   const handleCalendarClick = () => setActiveView("calendar");
-  const toggleSettings = () => setShowSettings(!showSettings);
+
+  const toggleSettings = async () => {
+    const newShowSettings = !showSettings;
+    setShowSettings(newShowSettings);
+
+    if (newShowSettings) {
+      try {
+        // Fetch user data when opening settings
+        const response = await axios.get(
+          `http://localhost:5000/quill/user/email/${email}`,
+          { withCredentials: true }
+        );
+        console.log("User data response:", response.data);
+
+        setUserData({
+          name: response.data.name || response.data.user?.name || "", // Try multiple possible paths
+          email: response.data.email || response.data.user?.email || email,
+          password: "", // Never store password in state
+        });
+
+        // Set the view to image when opening settings
+        setActiveView("image");
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -280,7 +312,47 @@ const Home: React.FC = () => {
     setUserData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveChanges = () => alert("Changes saved successfully!");
+  const handleSaveChanges = async () => {
+    try {
+      const userResponse = await axios.get(
+        `http://localhost:5000/quill/user/email/${email}`,
+        { withCredentials: true }
+      );
+
+      const userId = userResponse.data._id || userResponse.data.user?._id;
+
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+
+      const updateResponse = await axios.put(
+        `http://localhost:5000/quill/user/update/${userId}`,
+        {
+          name: userData.name,
+        },
+        { withCredentials: true }
+      );
+
+      console.log("Update response:", updateResponse.data);
+      alert("Changes saved successfully!");
+
+      // Refresh user data after update
+      const refreshedResponse = await axios.get(
+        `http://localhost:5000/quill/user/email/${email}`,
+        { withCredentials: true }
+      );
+      setUserData({
+        name: refreshedResponse.data.name || "",
+        email: refreshedResponse.data.email || email,
+        password: "",
+      });
+
+      setShowSettings(false);
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      alert("Failed to save changes. Please try again.");
+    }
+  };
 
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
@@ -470,32 +542,10 @@ const Home: React.FC = () => {
                   <label htmlFor="fullName">Full Name</label>
                   <input
                     type="text"
-                    id="fullName"
-                    name="fullName"
+                    id="name"
+                    name="name"
                     placeholder="John Doe"
-                    value={userData.fullName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="johndoe@gmail.com"
-                    value={userData.email}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="password">Password</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="********"
-                    value={userData.password}
+                    value={userData.name}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -663,15 +713,14 @@ const Home: React.FC = () => {
       )}
 
       <div className="right-container">
-        {activeView === "image" && (
+        {/* Show image view when settings are open OR when image view is active */}
+        {showSettings || activeView === "image" ? (
           <div className="right-container1">
             <div className="right-image">
               <img src="Image/right-bg.png" alt="" />
             </div>
           </div>
-        )}
-
-        {activeView === "taskList" && (
+        ) : activeView === "taskList" ? (
           <>
             <div className="activity-feed">
               <h2 className="activity-header">Note List</h2>
@@ -741,9 +790,7 @@ const Home: React.FC = () => {
               </button>
             </div>
           </>
-        )}
-
-        {activeView === "calendar" && (
+        ) : (
           <div className="calendar-view">
             <div className="calendar-header">
               <button
@@ -774,6 +821,7 @@ const Home: React.FC = () => {
           </div>
         )}
       </div>
+
       <AddTaskModal
         isOpen={showTaskModal}
         onClose={() => {
