@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
-import axios from "axios";
 
 interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   email: string;
   onSubmit: (task: {
+    email: string;
     title: string;
     description: string;
     date: string;
     tags: string[];
     category: string;
-  }) => void;
+  }) => Promise<void>;
 }
 
 interface Category {
@@ -30,26 +30,30 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [currentTag, setCurrentTag] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [keyWords, setKeyWords] = useState<string[]>([]);
+  const [categoryType, setCategoryType] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   useEffect(() => {
     if (isOpen && email) {
       fetchCategories();
+      setFormSubmitted(false);
     }
   }, [isOpen, email]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(
+      const response = await fetch(
         `http://localhost:5000/quill/category/all/${email}`,
-        { withCredentials: true }
+        { credentials: "include" }
       );
-      if (Array.isArray(response.data)) {
-        setCategories(response.data);
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setCategories(data);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -59,32 +63,51 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   };
 
   const handleAddTag = () => {
-    if (currentTag.trim() && !tags.includes(currentTag)) {
-      setTags([...tags, currentTag]);
+    if (currentTag.trim() && !keyWords.includes(currentTag)) {
+      setKeyWords([...keyWords, currentTag]);
       setCurrentTag("");
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+    setKeyWords(keyWords.filter((tag) => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
+    if (formSubmitted || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setFormSubmitted(true);
+
+    const noteData = {
+      email,
       title,
       description,
-      date,
-      tags,
-      category: selectedCategory,
-    });
-    // Reset form
+      date: new Date(date).toISOString(),
+      tags: keyWords,
+      category: categoryType,
+    };
+
+    try {
+      await onSubmit(noteData); // delegate POST to parent
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("Error creating note:", error);
+      alert("Failed to create note. Please try again.");
+      setFormSubmitted(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
     setTitle("");
     setDescription("");
     setDate(new Date().toISOString().split("T")[0]);
-    setTags([]);
-    setSelectedCategory("");
-    onClose();
+    setKeyWords([]);
+    setCategoryType("");
   };
 
   if (!isOpen) return null;
@@ -98,34 +121,38 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         <h2>Add New Note</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Title</label>
+            <label>Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               className="task-input"
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="form-group">
-            <label>Date</label>
+            <label>Date *</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
               className="task-input"
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="form-group">
-            <label>Description</label>
+            <label>Description *</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               className="task-input task-textarea"
+              required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -144,23 +171,26 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   }
                 }}
                 className="task-input"
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={handleAddTag}
                 className="add-tag-btn"
+                disabled={isSubmitting}
               >
                 Add
               </button>
             </div>
             <div className="tags-container">
-              {tags.map((tag) => (
+              {keyWords.map((tag) => (
                 <span key={tag} className="tag">
                   #{tag}
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
                     className="remove-tag"
+                    disabled={isSubmitting}
                   >
                     ×
                   </button>
@@ -170,13 +200,13 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label>Category</label>
+            <label>Category *</label>
             <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              value={categoryType}
+              onChange={(e) => setCategoryType(e.target.value)}
               required
               className="task-input"
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
             >
               <option value="">Select a category</option>
               {isLoading ? (
@@ -191,8 +221,8 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
             </select>
           </div>
 
-          <button type="submit" className="submit-btn">
-            Add Note
+          <button type="submit" className="submit-btn" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Add Note"}
           </button>
         </form>
       </div>
