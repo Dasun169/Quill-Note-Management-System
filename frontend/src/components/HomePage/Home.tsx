@@ -6,6 +6,7 @@ import { IoIosContact } from "react-icons/io";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { SlCalender } from "react-icons/sl";
+import { FiEdit2 } from "react-icons/fi";
 import axios from "axios";
 import AddTaskModal from "../AddTaskModal/AddTaskModal";
 import "./css-files/home.css";
@@ -360,6 +361,23 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleDelete = (_id: string) => {
+    axios
+      .delete(`http://localhost:5000/quill/note/delete-by-id/${_id}`, {
+        withCredentials: true,
+      })
+      .then(() => {
+        setNotes((prevNotes) => prevNotes.filter((note) => note._id !== _id));
+      })
+      .catch((error) => {
+        console.error("Error deleting note:", error);
+      });
+  };
+
+  function handleEdit(note: Note): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="main-container">
       {showSettings ? (
@@ -619,7 +637,24 @@ const Home: React.FC = () => {
               ) : (
                 notes.map((note) => (
                   <div key={note._id} className="activity-item">
-                    <h3 className="activity-title">{note.title}</h3>
+                    <div className="activity-header">
+                      <h3 className="activity-title">{note.title}</h3>
+                      <div className="activity-actions">
+                        <button
+                          className="icon-button edit-btn"
+                          onClick={() => handleEdit(note)}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          className="icon-button delete-btn"
+                          onClick={() => handleDelete(note._id)}
+                        >
+                          <RiDeleteBin6Line />
+                        </button>
+                      </div>
+                    </div>
+
                     <p className="activity-date">
                       {new Date(note.date).toLocaleDateString("en-US", {
                         day: "numeric",
