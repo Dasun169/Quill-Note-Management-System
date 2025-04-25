@@ -53,6 +53,7 @@ const Home: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -327,7 +328,6 @@ const Home: React.FC = () => {
     return days;
   };
 
-  // Update the handleAddTask function in Home.tsx
   const handleAddTask = async (task: {
     title: string;
     description: string;
@@ -336,28 +336,74 @@ const Home: React.FC = () => {
     category: string;
   }) => {
     try {
-      const response = await axios.post(
-        "http://localhost:5000/quill/note/create",
-        {
-          email,
-          title: task.title,
-          description: task.description,
-          date: task.date,
-          keyWords: task.tags,
-          categoryType: task.category,
-        },
-        { withCredentials: true }
-      );
+      if (editingNote) {
+        // Update existing note
+        const response = await axios.put(
+          `http://localhost:5000/quill/note/update-by-id/${editingNote._id}`,
+          {
+            email,
+            title: task.title,
+            description: task.description,
+            date: task.date,
+            keyWords: task.tags,
+            categoryType: task.category,
+          },
+          { withCredentials: true }
+        );
 
-      if (response.data) {
-        // Refresh the notes list and categories
-        await fetchNotes();
-        await fetchCategories();
-        alert(`Note "${task.title}" added successfully!`);
+        if (response.data) {
+          // Update the note in state immediately
+          setNotes((prevNotes) =>
+            prevNotes.map((note) =>
+              note._id === editingNote._id
+                ? {
+                    ...note,
+                    title: task.title,
+                    description: task.description,
+                    date: task.date,
+                    keyWords: task.tags,
+                    categoryType: task.category,
+                  }
+                : note
+            )
+          );
+          setShowTaskModal(false); // Close the modal
+          setEditingNote(null); // Reset editing state
+          return; // Early return to skip the success alert below
+        }
+      } else {
+        // Create new note (existing code)
+        const response = await axios.post(
+          "http://localhost:5000/quill/note/create",
+          {
+            email,
+            title: task.title,
+            description: task.description,
+            date: task.date,
+            keyWords: task.tags,
+            categoryType: task.category,
+          },
+          { withCredentials: true }
+        );
+
+        if (response.data) {
+          // Refresh the notes list and categories
+          await fetchNotes();
+          await fetchCategories();
+        }
       }
+      alert(
+        `Note "${task.title}" ${
+          editingNote ? "updated" : "added"
+        } successfully!`
+      );
     } catch (error) {
-      console.error("Error adding note:", error);
-      alert("Failed to add note. Please try again.");
+      console.error("Error saving note:", error);
+      alert(
+        `Failed to ${editingNote ? "update" : "add"} note. Please try again.`
+      );
+    } finally {
+      setEditingNote(null); // Ensure editing state is reset
     }
   };
 
@@ -374,9 +420,10 @@ const Home: React.FC = () => {
       });
   };
 
-  function handleEdit(note: Note): void {
-    throw new Error("Function not implemented.");
-  }
+  const handleEdit = (note: Note) => {
+    setEditingNote(note);
+    setShowTaskModal(true);
+  };
 
   return (
     <div className="main-container">
@@ -729,9 +776,13 @@ const Home: React.FC = () => {
       </div>
       <AddTaskModal
         isOpen={showTaskModal}
-        onClose={() => setShowTaskModal(false)}
+        onClose={() => {
+          setShowTaskModal(false);
+          setEditingNote(null); // Reset editing state when modal closes
+        }}
         email={email}
         onSubmit={handleAddTask}
+        editingNote={editingNote}
       />
     </div>
   );

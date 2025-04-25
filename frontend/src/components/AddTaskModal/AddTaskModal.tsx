@@ -13,6 +13,14 @@ interface AddTaskModalProps {
     tags: string[];
     category: string;
   }) => Promise<void>;
+  editingNote?: {
+    _id: string;
+    title: string;
+    description: string;
+    date: string;
+    keyWords: string[];
+    categoryType: string;
+  } | null;
 }
 
 interface Category {
@@ -25,6 +33,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   onClose,
   email,
   onSubmit,
+  editingNote,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -36,6 +45,18 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (editingNote) {
+      setTitle(editingNote.title);
+      setDescription(editingNote.description);
+      setDate(editingNote.date.split("T")[0]);
+      setKeyWords(editingNote.keyWords || []);
+      setCategoryType(editingNote.categoryType);
+    } else {
+      resetForm();
+    }
+  }, [editingNote]);
 
   useEffect(() => {
     if (isOpen && email) {
@@ -90,9 +111,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     };
 
     try {
-      await onSubmit(noteData); // delegate POST to parent
-      resetForm();
-      onClose();
+      await onSubmit(noteData);
     } catch (error) {
       console.error("Error creating note:", error);
       alert("Failed to create note. Please try again.");
@@ -222,7 +241,13 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           </div>
 
           <button type="submit" className="submit-btn" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Add Note"}
+            {isSubmitting
+              ? editingNote
+                ? "Updating..."
+                : "Creating..."
+              : editingNote
+              ? "Update Note"
+              : "Add Note"}
           </button>
         </form>
       </div>

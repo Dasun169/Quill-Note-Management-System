@@ -957,12 +957,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  margin-left: 8px;
+  margin-right: -5px;
   font-size: 1.2rem;
+  margin-top: 10px;
 }
 
 .edit-btn {
   color: #007bff;
+  margin-right: 5px;
 }
 
 .delete-btn {
