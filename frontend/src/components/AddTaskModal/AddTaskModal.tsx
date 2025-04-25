@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
+import axios from "axios";
 
 interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  categories: { id: string; name: string; color: string }[];
+  email: string;
   onSubmit: (task: {
     title: string;
     description: string;
@@ -14,10 +15,15 @@ interface AddTaskModalProps {
   }) => void;
 }
 
+interface Category {
+  _id: string;
+  categoryType: string;
+}
+
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
   isOpen,
   onClose,
-  categories,
+  email,
   onSubmit,
 }) => {
   const [title, setTitle] = useState("");
@@ -26,8 +32,31 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const [currentTag, setCurrentTag] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen && email) {
+      fetchCategories();
+    }
+  }, [isOpen, email]);
+
+  const fetchCategories = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/quill/category/all/${email}`,
+        { withCredentials: true }
+      );
+      if (Array.isArray(response.data)) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddTag = () => {
     if (currentTag.trim() && !tags.includes(currentTag)) {
@@ -49,8 +78,16 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       tags,
       category: selectedCategory,
     });
+    // Reset form
+    setTitle("");
+    setDescription("");
+    setDate(new Date().toISOString().split("T")[0]);
+    setTags([]);
+    setSelectedCategory("");
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay">
@@ -58,7 +95,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         <button className="close-modal" onClick={onClose}>
           <RxCross2 />
         </button>
-        <h2>Add New Task</h2>
+        <h2>Add New Note</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Title</label>
@@ -139,18 +176,23 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               onChange={(e) => setSelectedCategory(e.target.value)}
               required
               className="task-input"
+              disabled={isLoading}
             >
               <option value="">Select a category</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
+              {isLoading ? (
+                <option value="">Loading categories...</option>
+              ) : (
+                categories.map((category) => (
+                  <option key={category._id} value={category.categoryType}>
+                    {category.categoryType}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
           <button type="submit" className="submit-btn">
-            Add Task
+            Add Note
           </button>
         </form>
       </div>

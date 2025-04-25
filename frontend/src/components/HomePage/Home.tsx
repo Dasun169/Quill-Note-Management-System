@@ -326,15 +326,38 @@ const Home: React.FC = () => {
     return days;
   };
 
-  const handleAddTask = (task: {
+  // Update the handleAddTask function in Home.tsx
+  const handleAddTask = async (task: {
     title: string;
     description: string;
     date: string;
     tags: string[];
     category: string;
   }) => {
-    console.log("New task:", task);
-    alert(`Task "${task.title}" added successfully!`);
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/quill/note/create",
+        {
+          email,
+          title: task.title,
+          description: task.description,
+          date: task.date,
+          keyWords: task.tags,
+          categoryType: task.category,
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        // Refresh the notes list and categories
+        await fetchNotes();
+        await fetchCategories();
+        alert(`Note "${task.title}" added successfully!`);
+      }
+    } catch (error) {
+      console.error("Error adding note:", error);
+      alert("Failed to add note. Please try again.");
+    }
   };
 
   return (
@@ -672,11 +695,7 @@ const Home: React.FC = () => {
       <AddTaskModal
         isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
-        categories={categories.map((cat) => ({
-          id: cat._id,
-          name: cat.categoryType,
-          color: getCategoryColor(cat.categoryType),
-        }))}
+        email={email}
         onSubmit={handleAddTask}
       />
     </div>
