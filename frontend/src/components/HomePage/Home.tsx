@@ -8,6 +8,8 @@ import { FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { SlCalender } from "react-icons/sl";
 import { FiEdit2 } from "react-icons/fi";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import AddTaskModal from "../AddTaskModal/AddTaskModal";
 import "./css-files/home.css";
 
@@ -87,6 +89,7 @@ const Home: React.FC = () => {
         }
       } catch (error) {
         console.error("Auth verification failed:", error);
+        toast.error("Authentication failed. Please login again.");
         navigate("/");
       }
     };
@@ -113,6 +116,7 @@ const Home: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching notes:", error);
+      toast.error("Failed to fetch notes. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -134,6 +138,7 @@ const Home: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
+      toast.error("Failed to fetch categories. Please try again.");
     }
   };
 
@@ -163,12 +168,16 @@ const Home: React.FC = () => {
       setCategoryCounts(countsObj);
     } catch (error) {
       console.error("Error fetching category counts:", error);
+      toast.error("Failed to fetch category counts. Please try again.");
     }
   };
 
   // Add new category
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim()) {
+      toast.warning("Please enter a category name");
+      return;
+    }
 
     try {
       const response = await axios.post(
@@ -185,9 +194,11 @@ const Home: React.FC = () => {
         setNewCategoryName("");
         setIsAddingCategory(false);
         fetchCategoryCounts([...categories, response.data]);
+        toast.success("Category added successfully!");
       }
     } catch (error) {
       console.error("Error adding category:", error);
+      toast.error("Failed to add category. Please try again.");
     }
   };
 
@@ -207,8 +218,11 @@ const Home: React.FC = () => {
       const updatedCounts = { ...categoryCounts };
       delete updatedCounts[categoryType];
       setCategoryCounts(updatedCounts);
+
+      toast.success("Category deleted successfully!");
     } catch (error) {
       console.error("Error deleting category:", error);
+      toast.error("Failed to delete category. Please try again.");
     }
   };
 
@@ -273,6 +287,7 @@ const Home: React.FC = () => {
         setActiveView("image");
       } catch (error) {
         console.error("Error fetching user data:", error);
+        toast.error("Failed to load user data. Please try again.");
       }
     }
   };
@@ -284,9 +299,11 @@ const Home: React.FC = () => {
         {},
         { withCredentials: true }
       );
+      toast.success("Logged out successfully!");
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
+      toast.error("Failed to logout. Please try again.");
     }
   };
 
@@ -302,6 +319,7 @@ const Home: React.FC = () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         setProfileImage(event.target?.result as string);
+        toast.success("Profile image updated successfully!");
       };
       reader.readAsDataURL(file);
     }
@@ -334,7 +352,7 @@ const Home: React.FC = () => {
       );
 
       console.log("Update response:", updateResponse.data);
-      alert("Changes saved successfully!");
+      toast.success("Changes saved successfully!");
 
       // Refresh user data after update
       const refreshedResponse = await axios.get(
@@ -350,7 +368,7 @@ const Home: React.FC = () => {
       setShowSettings(false);
     } catch (error) {
       console.error("Error saving changes:", error);
-      alert("Failed to save changes. Please try again.");
+      toast.error("Failed to save changes. Please try again.");
     }
   };
 
@@ -441,6 +459,7 @@ const Home: React.FC = () => {
           );
           setShowTaskModal(false); // Close the modal
           setEditingNote(null); // Reset editing state
+          toast.success(`Note "${task.title}" updated successfully!`);
           return; // Early return to skip the success alert below
         }
       } else {
@@ -462,16 +481,12 @@ const Home: React.FC = () => {
           // Refresh the notes list and categories
           await fetchNotes();
           await fetchCategories();
+          toast.success(`Note "${task.title}" added successfully!`);
         }
       }
-      alert(
-        `Note "${task.title}" ${
-          editingNote ? "updated" : "added"
-        } successfully!`
-      );
     } catch (error) {
       console.error("Error saving note:", error);
-      alert(
+      toast.error(
         `Failed to ${editingNote ? "update" : "add"} note. Please try again.`
       );
     } finally {
@@ -486,9 +501,11 @@ const Home: React.FC = () => {
       })
       .then(() => {
         setNotes((prevNotes) => prevNotes.filter((note) => note._id !== _id));
+        toast.success("Note deleted successfully!");
       })
       .catch((error) => {
         console.error("Error deleting note:", error);
+        toast.error("Failed to delete note. Please try again.");
       });
   };
 
@@ -499,6 +516,18 @@ const Home: React.FC = () => {
 
   return (
     <div className="main-container">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+
       {showSettings ? (
         <div className="settings-container">
           <div className="settings-header">
