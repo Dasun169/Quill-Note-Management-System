@@ -116,7 +116,7 @@ const Home: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching notes:", error);
-      toast.error("Failed to fetch notes. Please try again.");
+      toast.error("No notes found. Add a new note to get started.");
     } finally {
       setIsLoading(false);
     }

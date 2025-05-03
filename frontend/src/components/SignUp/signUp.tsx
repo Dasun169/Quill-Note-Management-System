@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./css-files/signUp.css";
 
 interface SignUpForm {
@@ -29,6 +30,15 @@ const SignUp: React.FC = () => {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Set video playback rate for smoother effect
+  React.useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.7;
+    }
+  }, []);
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -40,14 +50,16 @@ const SignUp: React.FC = () => {
 
   const handleError = (err: string) => {
     toast.error(err, {
-      position: "bottom-left",
+      position: "top-center",
+      className: "toast-error",
     });
     setIsLoading(false);
   };
 
   const handleSuccess = (msg: string) => {
     toast.success(msg, {
-      position: "bottom-right",
+      position: "top-center",
+      className: "toast-success",
     });
     setIsLoading(false);
   };
@@ -64,6 +76,11 @@ const SignUp: React.FC = () => {
 
     if (!inputValue.name || !inputValue.email || !inputValue.password) {
       handleError("All fields are required");
+      return;
+    }
+
+    if (inputValue.password.length < 6) {
+      handleError("Password must be at least 6 characters");
       return;
     }
 
@@ -87,7 +104,7 @@ const SignUp: React.FC = () => {
         handleSuccess(data.message);
         setTimeout(() => {
           navigate("/Home", { state: { email: inputValue.email } });
-        }, 3000);
+        }, 1500);
       } else {
         handleError(data.message || "Registration failed");
       }
@@ -110,10 +127,33 @@ const SignUp: React.FC = () => {
 
   return (
     <div className="signup-container">
-      <div className="signup-form2">
-        <h2>Create Account</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group2">
+      {/* Video background */}
+      <div className="video-background">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="video-bg"
+        >
+          <source
+            src="https://assets.mixkit.co/videos/preview/mixkit-woman-writing-on-a-notebook-3221-large.mp4"
+            type="video/mp4"
+          />
+          Your browser does not support the video tag.
+        </video>
+        <div className="video-overlay"></div>
+      </div>
+
+      <div className="signup-card">
+        <div className="signup-header">
+          <h2>Create Your Account</h2>
+          <p>Join our note-taking community</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="signup-form">
+          <div className="form-group">
             <label htmlFor="name">Full Name</label>
             <input
               type="text"
@@ -122,9 +162,10 @@ const SignUp: React.FC = () => {
               value={inputValue.name}
               onChange={handleOnChange}
               required
+              placeholder="Enter your full name"
             />
           </div>
-          <div className="form-group2">
+          <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
               type="email"
@@ -133,21 +174,32 @@ const SignUp: React.FC = () => {
               value={inputValue.email}
               onChange={handleOnChange}
               required
+              placeholder="Enter your email"
             />
           </div>
-          <div className="form-group2">
+          <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={inputValue.password}
-              onChange={handleOnChange}
-              required
-              minLength={6}
-            />
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={inputValue.password}
+                onChange={handleOnChange}
+                required
+                minLength={6}
+                placeholder="Create a password (min 6 chars)"
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
           </div>
-          <div className="form-group2">
+          <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
@@ -157,17 +209,56 @@ const SignUp: React.FC = () => {
               onChange={handleOnChange}
               required
               minLength={6}
+              placeholder="Confirm your password"
             />
           </div>
-          <button type="submit" className="signup-button2" disabled={isLoading}>
-            {isLoading ? "Creating Account..." : "Sign Up"}
+          <button
+            type="submit"
+            className={`signup-button ${isLoading ? "loading" : ""}`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="spinner"></span>
+                Creating Account...
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
-        <div className="login-link2">
-          Already have an account? <Link to="/">Sign In</Link>
+
+        <div className="signup-footer">
+          <p>
+            Already have an account?{" "}
+            <Link to="/" className="login-link">
+              Sign In
+            </Link>
+          </p>
+          <p className="terms-text">
+            By signing up, you agree to our{" "}
+            <Link to="/terms" className="terms-link">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="terms-link">
+              Privacy Policy
+            </Link>
+          </p>
         </div>
       </div>
-      <ToastContainer />
+
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };
