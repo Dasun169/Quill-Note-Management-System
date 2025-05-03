@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./css-files/signIn.css";
 
 interface LoginForm {
@@ -25,20 +26,18 @@ const SignIn: React.FC = () => {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Check authentication status on component mount
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        console.log("Checking auth status...");
         const response = await axios.post(
           "http://localhost:5000/quill/verify",
           {},
           { withCredentials: true }
         );
-        console.log("Auth check response:", response.data);
         if (response.data.status) {
-          console.log("User authenticated, navigating to Home");
           navigate("/Home", {
             state: { email: response.data.user?.email || "" },
           });
@@ -48,6 +47,11 @@ const SignIn: React.FC = () => {
       }
     };
     checkAuthStatus();
+
+    // Set video playback rate for smoother effect
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.7;
+    }
   }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,14 +64,16 @@ const SignIn: React.FC = () => {
 
   const handleError = (err: string) => {
     toast.error(err, {
-      position: "bottom-left",
+      position: "top-center",
+      className: "toast-error",
     });
     setIsLoading(false);
   };
 
   const handleSuccess = (msg: string) => {
     toast.success(msg, {
-      position: "bottom-right",
+      position: "top-center",
+      className: "toast-success",
     });
     setIsLoading(false);
   };
@@ -76,7 +82,6 @@ const SignIn: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Basic validation
     if (!inputValue.email || !inputValue.password) {
       handleError("All fields are required");
       return;
@@ -98,7 +103,9 @@ const SignIn: React.FC = () => {
 
       if (data.success) {
         handleSuccess(data.message);
-        navigate("/Home", { state: { email: inputValue.email } });
+        setTimeout(() => {
+          navigate("/Home", { state: { email: inputValue.email } });
+        }, 1500);
       } else {
         handleError(data.message || "Login failed");
       }
@@ -121,10 +128,33 @@ const SignIn: React.FC = () => {
 
   return (
     <div className="signin-container">
-      <div className="signin-form1">
-        <h2>Welcome Back</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group1">
+      {/* Video background */}
+      <div className="video-background">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="video-bg"
+        >
+          <source
+            src="https://assets.mixkit.co/videos/preview/mixkit-notebook-with-a-blue-cover-and-pencil-11747-large.mp4"
+            type="video/mp4"
+          />
+          Your browser does not support the video tag.
+        </video>
+        <div className="video-overlay"></div>
+      </div>
+
+      <div className="signin-card">
+        <div className="signin-header">
+          <h2>Welcome Back</h2>
+          <p>Sign in to access your notes</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="signin-form">
+          <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
               type="email"
@@ -133,9 +163,10 @@ const SignIn: React.FC = () => {
               value={inputValue.email}
               onChange={handleChange}
               required
+              placeholder="Enter your email"
             />
           </div>
-          <div className="form-group1">
+          <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
               type="password"
@@ -144,17 +175,49 @@ const SignIn: React.FC = () => {
               value={inputValue.password}
               onChange={handleChange}
               required
+              placeholder="Enter your password"
             />
           </div>
-          <button type="submit" className="signin-button1" disabled={isLoading}>
-            {isLoading ? "Signing In..." : "Sign In"}
+          <button
+            type="submit"
+            className={`signin-button ${isLoading ? "loading" : ""}`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="spinner"></span>
+                Signing In...
+              </>
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
-        <div className="signup-link1">
-          Don't have an account? <Link to="/SignUp">Sign up</Link>
+
+        <div className="signin-footer">
+          <p>
+            Don't have an account?{" "}
+            <Link to="/SignUp" className="signup-link">
+              Sign up
+            </Link>
+          </p>
+          <Link to="/forgot-password" className="forgot-password">
+            Forgot password?
+          </Link>
         </div>
       </div>
-      <ToastContainer />
+
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };
