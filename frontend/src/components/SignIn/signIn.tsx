@@ -32,7 +32,7 @@ const SignIn: React.FC = () => {
       try {
         console.log("Checking auth status...");
         const response = await axios.post(
-          "http://localhost:5000/",
+          "http://localhost:5000/quill/verify",
           {},
           { withCredentials: true }
         );
