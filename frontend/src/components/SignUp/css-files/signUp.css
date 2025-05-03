@@ -96,7 +96,7 @@
 }
 
 .form-group input {
-  width: 100%;
+  width: 92%;
   padding: 0.85rem 1rem;
   border: 1px solid #dfe6e9;
   border-radius: 8px;
@@ -117,7 +117,7 @@
 
 .toggle-password {
   position: absolute;
-  left: 440px;
+  left: 400px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
