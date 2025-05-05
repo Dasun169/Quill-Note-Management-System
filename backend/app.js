@@ -14,7 +14,10 @@ const AuthRouter = require("./Routes/AuthRoute");
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://precious-brioche-f13d21.netlify.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
